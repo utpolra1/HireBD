@@ -1,11 +1,18 @@
 import React, { useContext } from "react";
 import useAxios from "../Hooks/UseAxios";
 import { AuthContext } from "../Firebase/AuthProvider";
+import { useQuery } from "@tanstack/react-query";
 
 const UserProfile = () => {
     const { user, logOut } = useContext(AuthContext);
-    const useaxios=useAxios();
-    
+    const axiosSecure = useAxios();
+    const { data: users = [], refetch } = useQuery({
+        queryKey: ["users"],
+        queryFn: async () => {
+          const res = await axiosSecure.get("/users");
+          return res.data;
+        },
+      });
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       {/* Profile Header */}

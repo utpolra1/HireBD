@@ -36,7 +36,7 @@ const Login = () => {
 
   return (
     <div className="flex justify-center mt-8 text-white">
-      <div class="relative flex flex-col px-28 bg-gray-900 text-white bg-transparent shadow-none rounded-xl bg-clip-border">
+      <div class="relative flex flex-col px-28 bg-gray-900 text-white shadow-none rounded-xl bg-clip-border">
         <div class="m-5 px-8 py-3 text-center block font-sans text-2xl antialiased font-semibold leading-snug tracking-normal rounded-lg bg-[#ff00d3]">
             Login Now
         </div>

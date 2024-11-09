@@ -27,8 +27,8 @@ const Navbar = () => {
 
   return (
     <div
-      className={`navbar bg-slate-900 text-white ${
-        isDarkTheme ? "bg-black text-white" : "bg-white text-black"
+      className={`navbar text-white bg-gray-800 ${
+        isDarkTheme=== "bg-black text-white"
       }`}
     >
       <div className="navbar-start">
@@ -52,13 +52,13 @@ const Navbar = () => {
           </button>
           <ul
             tabIndex={0}
-            className="menu menu-sm dropdown-content mt-3 z-[1] w-52 bg-base-100 rounded-box shadow"
+            className="menu menu-sm dropdown-content mt-3 z-[1] w-52 rounded-box shadow"
           >
             <li>
               <NavLink to="/">Home</NavLink>
             </li>
             <li>
-              <NavLink to="/about">About</NavLink>
+              <NavLink to="/mircrowrk">Mircrowrk</NavLink>
             </li>
             <li>
               <NavLink to="/services">Services</NavLink>
@@ -82,7 +82,7 @@ const Navbar = () => {
             <NavLink to="/">Home</NavLink>
           </li>
           <li>
-            <NavLink to="/about">About</NavLink>
+            <NavLink to="/mircrowrk">Mircrowrk</NavLink>
           </li>
           <li>
             <NavLink to="/services">Services</NavLink>
@@ -100,7 +100,7 @@ const Navbar = () => {
             type="checkbox"
             checked={isDarkTheme}
             onChange={toggleTheme}
-            className="toggle theme-controller bg-base-content col-span-2 col-start-1 row-start-1"
+            className="toggle theme-controller col-span-2 col-start-1 row-start-1"
           />
           <svg
             className="stroke-base-100 fill-base-100 col-start-1 row-start-1"
@@ -132,11 +132,11 @@ const Navbar = () => {
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </label>
-
+        <div>$0.00</div>
         <div className="flex items-center gap-x-1">
           <div>
             {user ? (
-              <div>
+              <div className="flex">
                 <div role="">
                   <div className="w-10 mr-2 rounded-full items-center flex justify-center">
                       <NavLink to="/userprofile">
@@ -150,6 +150,7 @@ const Navbar = () => {
                       </NavLink>
                   </div>
                 </div>
+                <div><NavLink to='/dashboard' className='btn btn-outline btn-secondary'>DashBoard</NavLink></div>
               </div>
             ) : (
               <NavLink to="/login">

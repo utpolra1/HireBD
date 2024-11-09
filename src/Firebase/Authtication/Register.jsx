@@ -88,8 +88,8 @@ const Register = () => {
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="relative flex flex-col p-16 bg-gray-900 text-white bg-transparent shadow-none rounded-xl bg-clip-border">
+    <div className="flex justify-center my-3">
+      <div className="relative flex flex-col p-16 bg-gray-900 text-white shadow-none rounded-xl">
         <h4 className="text-center block font-sans text-2xl antialiased font-semibold leading-snug tracking-normal rounded-lg py-2 bg-[#ff00d3]">
           Register Now
         </h4>
