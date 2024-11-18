@@ -10,7 +10,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
 } from "firebase/auth";
-import app from "../firebase/firebase.config";
+import {app} from "../firebase/firebase.config";
 import useAxios from "../Hooks/UseAxios";
 import Swal from "sweetalert2"; // Import Swal for alert
 

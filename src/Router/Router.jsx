@@ -7,6 +7,8 @@ import Register from "../Firebase/Authtication/Register";
 import UserProfile from "../UserProfile/UserProfile";
 import Dashboard from "../AdminDashboard/Dashboard";
 import Microwork from "../Home/Microwork/Microwork";
+import Inbox from "../Inbox/Inbox";
+import Contract from "../Home/Contract/Contract";
 
 const Router = createBrowserRouter([
   {
@@ -34,6 +36,14 @@ const Router = createBrowserRouter([
     {
         path:'/mircrowrk',
         element:<Microwork></Microwork>
+    },
+    {
+        path:"/inbox",
+        element:<Inbox></Inbox>
+    },
+    {
+      path:"/contract",
+      element:<Contract></Contract>
     }
     ],
   },
