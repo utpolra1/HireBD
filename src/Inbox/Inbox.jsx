@@ -1,104 +1,211 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import useAxios from '../Hooks/UseAxios';
+import { AuthContext } from '../Firebase/AuthProvider';
+import { useQuery } from '@tanstack/react-query';
 
 const Inbox = () => {
-  const [selectedContact, setSelectedContact] = useState("Ripon Roy");
+    const axiosSecure = useAxios();
+    const { user } = useContext(AuthContext);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const receiverId = searchParams.get('receiverId');
+    const receiverName = searchParams.get('receiverName');
+    const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [selectedReceiver, setSelectedReceiver] = useState(null);
+    const [page, setPage] = useState(1); // Pagination state
+    const [isScrollingUp, setIsScrollingUp] = useState(false); // Track if user is scrolling up
 
-  // Contacts
-  const contacts = [
-    { id: 1, name: "Ripon Roy", profilePic: "https://via.placeholder.com/40" },
-    { id: 2, name: "Bangladesh Hindu Mohashangha", profilePic: "https://via.placeholder.com/40" },
-    { id: 3, name: "Rj Biddan", profilePic: "https://via.placeholder.com/40" },
-    { id: 4, name: "Bikash Roy Stafin", profilePic: "https://via.placeholder.com/40" },
-  ];
+    const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
-  // Messages for each contact
-  const messagesData = {
-    "Ripon Roy": [
-      { id: 1, sender: "Ripon Roy", text: "Bolchilo er age student asche...", time: "1:00 PM" },
-      { id: 2, sender: "You", text: "Phone diya sun", time: "1:05 PM" },
-    ],
-    "Bangladesh Hindu Mohashangha": [
-      { id: 1, sender: "Bangladesh Hindu Mohashangha", text: "Number to deowa ache", time: "1:10 PM" },
-      { id: 2, sender: "You", text: "Kisu bolben na?", time: "1:15 PM" },
-    ],
-    "Rj Biddan": [
-      { id: 1, sender: "Rj Biddan", text: "R koch koch ache", time: "1:20 PM" },
-      { id: 2, sender: "You", text: "Thik ache", time: "1:25 PM" },
-    ],
-    "Bikash Roy Stafin": [
-      { id: 1, sender: "Bikash Roy Stafin", text: "https://www.facebook.com/...", time: "1:30 PM" },
-      { id: 2, sender: "You", text: "Thank you!", time: "1:35 PM" },
-    ],
-  };
+    const {
+        data: users = [],
+        refetch,
+        isLoading,
+        isError,
+        error,
+    } = useQuery({
+        queryKey: ['users'],
+        queryFn: async () => {
+            const res = await axiosSecure.get('/users');
+            return res.data;
+        },
+    });
 
-  // Get messages for the selected contact
-  const messages = messagesData[selectedContact] || [];
+    const activesuser = users.find((b) => b.email === user?.email);
 
-  return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-1/4 bg-white shadow-md border-r">
-        <h2 className="text-xl font-semibold text-gray-800 p-4">Chats</h2>
-        <ul className="space-y-2">
-          {contacts.map((contact) => (
-            <li
-              key={contact.id}
-              className={`flex items-center p-3 cursor-pointer ${
-                selectedContact === contact.name ? "bg-blue-100" : "hover:bg-gray-100"
-              }`}
-              onClick={() => setSelectedContact(contact.name)}
-            >
-              <img src={contact.profilePic} alt="Profile" className="rounded-full w-12 h-12 mr-3" />
-              <div>
-                <p className="font-medium">{contact.name}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+    useEffect(() => {
+        if (!receiverId) return;
+        const receiverUser = users.find((b) => b._id === receiverId);
+        setSelectedReceiver(receiverUser);
+    }, [receiverId, users]);
 
-      {/* Chat Window */}
-      <div className="flex-1 bg-white flex flex-col">
-        {/* Chat Header */}
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">{selectedContact}</h2>
-          <span className="text-sm text-green-500">Active now</span>
-        </div>
+    // Fetch messages when a conversation is selected
+    useEffect(() => {
+        if (!selectedReceiver) return;
+        const fetchMessages = async () => {
+            try {
+                const res = await axiosSecure.get(`/messages/${activesuser._id}/${selectedReceiver._id}?page=${page}`);
+                const filteredMessages = res.data.filter(
+                    (msg) =>
+                        (msg.senderId === activesuser._id && msg.receiverId === selectedReceiver._id) ||
+                        (msg.senderId === selectedReceiver._id && msg.receiverId === activesuser._id)
+                );
+                setMessages(filteredMessages);
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            }
+        };
+        fetchMessages();
+    }, [selectedReceiver, activesuser._id, page, axiosSecure]);
 
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender === "You" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`px-4 py-2 rounded-lg shadow-md max-w-sm ${
-                  msg.sender === "You" ? "bg-blue-600 text-white" : "bg-gray-200"
-                }`}
-              >
-                <p className="font-medium">{msg.sender}</p>
-                <p>{msg.text}</p>
-                <p className="text-xs text-gray-500 mt-1">{msg.time}</p>
-              </div>
+    // Scroll to the bottom when new messages are added, unless user is scrolling up
+    useEffect(() => {
+        if (!isScrollingUp && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, isScrollingUp]);
+
+    // Handle Scroll for Infinite Scrolling
+    const handleScroll = async () => {
+        const container = messagesContainerRef.current;
+        if (container.scrollTop === 0) {  // At the top of the chat
+            try {
+                const res = await axiosSecure.get(`/messages/${activesuser._id}/${selectedReceiver._id}?page=${page}`);
+                const newMessages = res.data.filter(
+                    (msg) =>
+                        (msg.senderId === activesuser._id && msg.receiverId === selectedReceiver._id) ||
+                        (msg.senderId === selectedReceiver._id && msg.receiverId === activesuser._id)
+                );
+                setMessages((prevMessages) => [...newMessages, ...prevMessages]);
+                setPage((prevPage) => prevPage + 1);
+            } catch (error) {
+                console.error('Error fetching older messages:', error);
+            }
+        }
+
+        // Check if the user is scrolling up
+        setIsScrollingUp(container.scrollTop < container.scrollHeight - container.clientHeight);
+    };
+
+    // Send a new message
+    const handleSendMessage = async () => {
+        if (newMessage.trim() === '') return;
+
+        try {
+            const res = await axiosSecure.post('/messages', {
+                senderId: activesuser._id,
+                receiverId: selectedReceiver._id,
+                text: newMessage,
+            });
+
+            // Add the new message to the list
+            setMessages((prevMessages) => [...prevMessages, res.data]);
+            setNewMessage('');
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+    };
+
+    return (
+        <div className="flex h-screen bg-gray-50">
+            {/* Sidebar */}
+            <div className="w-1/4 bg-gray-800 text-white p-4 overflow-y-auto">
+                <div className="text-lg font-semibold">Conversations</div>
+                <div className="mt-4 space-y-4">
+                    {users
+                        .filter((u) => u._id !== activesuser._id) // Exclude logged-in user from the sidebar
+                        .map((user) => (
+                            <div
+                                key={user._id}
+                                className="flex items-center space-x-4 hover:bg-gray-700 p-2 rounded-lg cursor-pointer"
+                                onClick={() => setSearchParams({ receiverId: user._id, receiverName: user.name })}
+                            >
+                                <img
+                                    src={user.photo || '/default-avatar.png'}
+                                    alt={user.name}
+                                    className="w-10 h-10 rounded-full"
+                                />
+                                <span>{user.name}</span>
+                            </div>
+                        ))}
+                </div>
             </div>
-          ))}
-        </div>
 
-        {/* Message Input */}
-        <div className="p-4 border-t flex items-center">
-          <input
-            type="text"
-            placeholder="Write a message..."
-            className="flex-1 border border-gray-300 rounded-lg p-3 focus:ring focus:ring-blue-500"
-          />
-          <button className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Send
-          </button>
+            {/* Chat Section */}
+            <div className="w-3/4 bg-gray-50 flex flex-col">
+                {/* Header */}
+                {selectedReceiver ? (
+                    <div className="p-4 bg-blue-600 text-white text-xl font-semibold">
+                        <div className="flex items-center">
+                            <img
+                                src={selectedReceiver.photo || '/default-avatar.png'}
+                                alt={selectedReceiver.name}
+                                className="w-10 h-10 rounded-full object-cover mr-4"
+                            />
+                            <span>{selectedReceiver.name}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-4 bg-gray-400 text-white text-xl font-semibold">Select a conversation</div>
+                )}
+
+                {/* Messages Container */}
+                <div
+                    ref={messagesContainerRef}
+                    className="flex-1 p-4 overflow-y-auto space-y-4"
+                    onScroll={handleScroll} // Trigger infinite scroll on scroll event
+                >
+                    {messages.map((msg) => {
+                        const sender = users.find((u) => u._id === msg.senderId);
+                        return (
+                            <div
+                                key={msg._id}
+                                className={`flex ${msg.senderId === activesuser._id ? 'justify-end' : 'justify-start'}`}
+                            >
+                                <div
+                                    className={`flex items-center space-x-2 ${msg.senderId === activesuser._id ? 'flex-row-reverse' : ''}`}
+                                >
+                                    {sender?.photo ? (
+                                        <img src={sender.photo} alt={sender.name} className="w-10 h-10 rounded-full object-cover" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gray-300"></div>
+                                    )}
+
+                                    <div
+                                        className={`max-w-xs p-3 rounded-lg shadow-lg ${
+                                            msg.senderId === activesuser._id ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'
+                                        }`}
+                                    >
+                                        {msg.text}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    <div ref={messagesEndRef} /> {/* This is where we scroll to */}
+                </div>
+
+                {/* Input */}
+                <div className="p-4 flex items-center border-t bg-white shadow-md">
+                    <input
+                        type="text"
+                        placeholder="Write a message..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-full p-3 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                        onClick={handleSendMessage}
+                        className="ml-4 p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700"
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default Inbox;
