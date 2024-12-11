@@ -1,10 +1,23 @@
 import React, { useState, useEffect, useContext } from "react";
 import { NavLink } from "react-router-dom";
 import { AuthContext } from "../Firebase/AuthProvider";
+import useAxios from "../Hooks/UseAxios";
+import { useQuery } from "@tanstack/react-query";
 
 const Navbar = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const { user, logOut } = useContext(AuthContext);
+
+
+  const axiosSecure = useAxios();
+  const { data: users = [], refetch } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await axiosSecure.get('/users');
+      return res.data;
+    },
+  });
+  const activeUser = users?.find((u) => u?.email === user?.email);
 
   // Toggle theme function
   const toggleTheme = () => {
@@ -138,7 +151,7 @@ const Navbar = () => {
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </label>
-        <div>$0.00</div>
+        <div>${activeUser?.balance}.00</div>
         <div className="flex items-center gap-x-1">
           <div>
             {user ? (

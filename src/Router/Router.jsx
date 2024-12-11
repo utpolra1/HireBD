@@ -1,20 +1,20 @@
 // this is router file where will be all path create and connect
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, NavLink } from "react-router-dom";
 import App from "../App";
 import Login from "../Firebase/Authtication/Login";
 import Home from "../Home/Home";
 import Register from "../Firebase/Authtication/Register";
 import UserProfile from "../UserProfile/UserProfile";
 import Dashboard from "../AdminDashboard/Dashboard";
-import Microwork from "../Home/Microwork/Microwork";
 import Inbox from "../Inbox/Inbox";
 import Contract from "../Home/Contract/Contract";
+import Alljobs from "../Home/Microwork/Alljobs";
 
 const Router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
-    errorElement: <></>,
+    errorElement: <><h1>Error.................</h1><NavLink className="btn" to='/'>Home</NavLink></>,
     children: [
       {
         path: "/",
@@ -35,7 +35,7 @@ const Router = createBrowserRouter([
       ,
     {
         path:'/mircrowrk',
-        element:<Microwork></Microwork>
+        element:<Alljobs></Alljobs>
     },
     {
         path:"/inbox",

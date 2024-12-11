@@ -14,7 +14,7 @@ const Inbox = () => {
     const [newMessage, setNewMessage] = useState('');
     const [selectedReceiver, setSelectedReceiver] = useState(null);
     const [page, setPage] = useState(1); // Pagination state
-    const [isScrollingUp, setIsScrollingUp] = useState(false); // Track if user is scrolling up
+    const [lastMessageId, setLastMessageId] = useState(null); // To track the last message for updating new messages
 
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
@@ -41,7 +41,7 @@ const Inbox = () => {
         setSelectedReceiver(receiverUser);
     }, [receiverId, users]);
 
-    // Fetch messages when a conversation is selected
+    // Fetch initial messages when a conversation is selected
     useEffect(() => {
         if (!selectedReceiver) return;
         const fetchMessages = async () => {
@@ -53,6 +53,9 @@ const Inbox = () => {
                         (msg.senderId === selectedReceiver._id && msg.receiverId === activesuser._id)
                 );
                 setMessages(filteredMessages);
+                if (filteredMessages.length > 0) {
+                    setLastMessageId(filteredMessages[filteredMessages.length - 1]._id);
+                }
             } catch (error) {
                 console.error('Error fetching messages:', error);
             }
@@ -60,34 +63,29 @@ const Inbox = () => {
         fetchMessages();
     }, [selectedReceiver, activesuser._id, page, axiosSecure]);
 
-    // Scroll to the bottom when new messages are added, unless user is scrolling up
+    // Fetch new messages only
     useEffect(() => {
-        if (!isScrollingUp && messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [messages, isScrollingUp]);
-
-    // Handle Scroll for Infinite Scrolling
-    const handleScroll = async () => {
-        const container = messagesContainerRef.current;
-        if (container.scrollTop === 0) {  // At the top of the chat
+        if (!selectedReceiver) return;
+        const fetchNewMessages = async () => {
             try {
-                const res = await axiosSecure.get(`/messages/${activesuser._id}/${selectedReceiver._id}?page=${page}`);
-                const newMessages = res.data.filter(
+                const res = await axiosSecure.get(`/messages/${activesuser._id}/${selectedReceiver._id}?lastMessageId=${lastMessageId}`);
+                const filteredMessages = res.data.filter(
                     (msg) =>
                         (msg.senderId === activesuser._id && msg.receiverId === selectedReceiver._id) ||
                         (msg.senderId === selectedReceiver._id && msg.receiverId === activesuser._id)
                 );
-                setMessages((prevMessages) => [...newMessages, ...prevMessages]);
-                setPage((prevPage) => prevPage + 1);
+                setMessages(prevMessages => [...prevMessages, ...filteredMessages]);
+                if (filteredMessages.length > 0) {
+                    setLastMessageId(filteredMessages[filteredMessages.length - 1]._id);
+                }
             } catch (error) {
-                console.error('Error fetching older messages:', error);
+                console.error('Error fetching new messages:', error);
             }
-        }
-
-        // Check if the user is scrolling up
-        setIsScrollingUp(container.scrollTop < container.scrollHeight - container.clientHeight);
-    };
+        };
+        // Polling for new messages every 5 seconds
+        const intervalId = setInterval(fetchNewMessages, 5000);
+        return () => clearInterval(intervalId);
+    }, [selectedReceiver, activesuser._id, lastMessageId, axiosSecure]);
 
     // Send a new message
     const handleSendMessage = async () => {
@@ -101,8 +99,12 @@ const Inbox = () => {
             });
 
             // Add the new message to the list
-            setMessages((prevMessages) => [...prevMessages, res.data]);
+            setMessages(prevMessages => [...prevMessages, res.data]);
             setNewMessage('');
+            // Scroll to bottom only when a new message is sent
+            if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
         } catch (error) {
             console.error('Error sending message:', error);
         }
@@ -155,7 +157,6 @@ const Inbox = () => {
                 <div
                     ref={messagesContainerRef}
                     className="flex-1 p-4 overflow-y-auto space-y-4"
-                    onScroll={handleScroll} // Trigger infinite scroll on scroll event
                 >
                     {messages.map((msg) => {
                         const sender = users.find((u) => u._id === msg.senderId);

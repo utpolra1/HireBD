@@ -33,6 +33,7 @@ async function run() {
 
     const usersCollection = client.db("hirebd").collection("user");
     const messageCollection = client.db("hirebd").collection("message");
+    const alljobsCollection = client.db("hirebd").collection("Alljobs");
 
     // users operation------->>
     //post user
@@ -51,6 +52,48 @@ async function run() {
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
+    });
+
+    app.get("/alljobs", async (req, res) => {
+      const result = await alljobsCollection.find().toArray();
+      res.send(result);
+    });
+    // Update user balance
+    app.put("/user/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { balance: incrementAmount } = req.body;
+
+        // Validate incrementAmount
+        if (isNaN(incrementAmount) || incrementAmount <= 0) {
+          return res.status(400).send("Invalid balance increment amount");
+        }
+
+        const query = { _id: new ObjectId(id) };
+        const user = await usersCollection.findOne(query);
+
+        // Handle case where user is not found
+        if (!user) {
+          return res.status(404).send("User not found");
+        }
+
+        // Ensure the user has a balance property
+        const currentBalance = user.balance || 0;
+
+        // Calculate the updated balance
+        const updatedBalance = currentBalance + parseInt(incrementAmount);
+
+        // Update the user document
+        const updateDoc = {
+          $set: { balance: updatedBalance },
+        };
+        const result = await usersCollection.updateOne(query, updateDoc);
+
+        res.send({ message: "Balance updated successfully", result });
+      } catch (error) {
+        console.error("Error updating balance:", error);
+        res.status(500).send("Internal Server Error");
+      }
     });
 
     // Save a message
