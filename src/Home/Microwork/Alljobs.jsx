@@ -30,6 +30,8 @@ const Alljobs = () => {
 
   // Find active user based on email
   const activeUser = users?.find((u) => u?.email === user?.email);
+  console.log(activeUser);
+  console.log(activeUser?.claimed);
 
   useEffect(() => {
     let interval;
@@ -60,33 +62,40 @@ const Alljobs = () => {
         alert("Invalid job details!");
         return;
       }
-  
+
       // Ensure 'claimed' is an array, filter out empty strings and duplicate job IDs
       const updatedClaimed = Array.isArray(activeUser.claimed)
-        ? [...new Set(
-            [
-              ...activeUser.claimed.filter(item => item !== ""), // Filter out empty strings
-              id // Add the new job ID
-            ]
-          )]
+        ? [
+            ...new Set([
+              ...activeUser.claimed.filter((item) => item !== ""), // Filter out empty strings
+              id, // Add the new job ID
+            ]),
+          ]
         : [id]; // If 'claimed' is not an array, initialize with the job ID
-  
-      const updatedBalance = typeof activeUser.balance === "number" ? activeUser.balance + 1 : 1;
-  
+
+      const updatedBalance =
+        typeof activeUser.balance === "number" ? activeUser.balance + 1 : 1;
+
       const requestBody = {
-        balance: updatedBalance,  // Increment the balance by $1
-        claimed: updatedClaimed,  // Updated 'claimed' array
+        balance: updatedBalance, // Increment the balance by $1
+        claimed: updatedClaimed, // Updated 'claimed' array
       };
-  
+
       // Debug: Log request details
-      console.log("Sending PATCH request to /user/" + activeUser._id, requestBody);
-  
+      console.log(
+        "Sending PATCH request to /user/" + activeUser._id,
+        requestBody
+      );
+
       // Send PATCH request to backend to update user balance and claimed jobs
-      const response = await axiosSecure.patch(`/user/${activeUser._id}`, requestBody);
-  
+      const response = await axiosSecure.patch(
+        `/user/${activeUser._id}`,
+        requestBody
+      );
+
       // Debug: Log response details
       console.log("Response from server:", response);
-  
+
       if (response.status === 200) {
         alert("You have claimed the job and earned $1!");
         setClaimedJobs((prev) => [...prev, id]); // Update UI locally
@@ -98,24 +107,21 @@ const Alljobs = () => {
     } catch (error) {
       // Log the full error for debugging
       console.error("Error claiming job:", error);
-  
+
       // Check if there's a specific error response from the backend
       if (error.response) {
         console.error("Error response from backend:", error.response.data);
-        alert(`Backend error: ${error.response.data.message || "Unknown error"}`);
+        alert(
+          `Backend error: ${error.response.data.message || "Unknown error"}`
+        );
       } else {
         // A different error occurred (e.g., network error)
-        alert("An error occurred while claiming the job. Please try again later.");
+        alert(
+          "An error occurred while claiming the job. Please try again later."
+        );
       }
     }
   };
-  
-  
-  
-  
-  
-  
-  
 
   const handleButtonClick = (job) => {
     window.open(job.link, "_blank"); // Open the link in a new tab
@@ -148,12 +154,19 @@ const Alljobs = () => {
                   </div>
                 ))}
               </div>
-              {clickedJob === job.title ? (
+              {activeUser?.claimed?.includes(job._id) ? (
+                <button
+                  className="px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed"
+                  disabled
+                >
+                  Claimed
+                </button>
+              ) : clickedJob === job.title ? (
                 timer > 0 ? (
                   <p className="text-lg">Wait... {timer}s</p>
                 ) : (
                   <button
-                    onClick={() => handleClaim(job?._id)}
+                    onClick={() => handleClaim(job._id)}
                     className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
                   >
                     Claim
